@@ -33,39 +33,73 @@ steptot <- activity2 %>%
   mutate(day = yday(dt)) %>%
   group_by(day) %>%
   summarize (steptot = sum(steps, na.rm = TRUE))
+mean(steptot$steptot)
 median(steptot$steptot)
 qplot(steptot, data=steptot, geom="histogram", binwidth = 1000)
 ```
 
 ## What is the average daily activity pattern?
 ```{r}
-qplot(day, steptot, data = steptot)
 
-steptotwday <- activity2 %>%
+stepint <- activity2 %>%
+  group_by(ichar4) %>%
+  summarize (stepintmean = mean(steps, na.rm = TRUE))
+
+qplot(ichar4, stepintmean, data = stepint)
+
+max(stepint$stepintmean)
+stepint
+
+```
+
+## Imputing missing values
+```{r}
+activity3 <- activity2 %>%
+  group_by(ichar4) %>%
+  mutate(intmean = mean(steps, na.rm = TRUE)) %>%
+  mutate(stepsnew = ifelse(is.na(steps), intmean, steps))
+
+steptot2 <- activity3 %>%
+  mutate(day = yday(dt)) %>%
+  group_by(day) %>%
+  summarize (steptot = sum(stepsnew, na.rm = TRUE))
+mean(steptot2$steptot)
+median(steptot2$steptot)
+qplot(steptot, data=steptot2, geom="histogram", binwidth = 1000)
+
+stepint2 <- activity3 %>%
+  group_by(ichar4) %>%
+  summarize (stepintmean = mean(stepsnew, na.rm = TRUE))
+
+qplot(ichar4, stepintmean, data = stepint2)
+
+max(stepint$stepintmean)
+stepint2
+```
+
+## Are there differences in activity patterns between weekdays and weekends?
+```{r}
+
+steptotwday <- activity3 %>%
   mutate(day = wday(dt)) %>%
   group_by(day) %>%
   summarize (steptot = sum(steps, na.rm = TRUE))
   
 qplot(day, steptot, data = steptotwday)
-```
 
-## Imputing missing values
-```{r}
-activity2 %>%
-  group_by(ichar4) %>%
-  mutate(imean = mean(steps, na.rm = TRUE)) %>%
-  filter(ichar4 == "1200")
-```
-
-## Are there differences in activity patterns between weekdays and weekends?
-```{r}
-activity2 %>%
+activity4 <- activity3 %>%
   mutate(daytype = ifelse(wday(dt) == 6 | wday(dt) == 7, "weekend", "weekday")) %>%
-  ## mutate(daytype = daytype(dt)) %>%
   group_by(daytype) %>%
   summarize(mean(steps, na.rm = TRUE))
+
+stepint3 <- activity3 %>%
+  mutate(daytype = ifelse(wday(dt) == 6 | wday(dt) == 7, "weekend", "weekday")) %>%
+  group_by(daytype,ichar4) %>%
+  summarize (stepintmean = mean(steps, na.rm = TRUE))
+
+qplot(ichar4, stepintmean, data = stepint3, facets = .~daytype)
 ```  
-qplot(data = activity3, steps)
+
 
 
 
