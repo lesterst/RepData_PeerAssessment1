@@ -5,21 +5,70 @@ output:
     keep_md: true
 ---
 
+```{r}
+## Open relevant libraries
+library(lubridate)
+library(stringr)
+library(ggplot2)
+library(dplyr)
+```
 
 ## Loading and preprocessing the data
-
+The first step is to load the csv file
+```{r}
+activity <- tbl_df(read.csv(file = "activity.csv",stringsAsFactors = FALSE))
+activity2 <- activity %>%
+  mutate(ichar4 = str_pad(as.character(interval), 4, pad = "0")) %>%
+  mutate(ihour = str_sub(ichar4, 1, 2)) %>%
+  mutate(imin = str_sub(ichar4, 3, 4)) %>%
+  mutate(dt = ymd_hm(paste(date, " ", ihour, ":", imin, sep = ""))) %>%
+  select(steps, ichar4, dt)
+  
+```
 
 
 ## What is mean total number of steps taken per day?
-
-
+```{r}
+steptot <- activity2 %>%
+  mutate(day = yday(dt)) %>%
+  group_by(day) %>%
+  summarize (steptot = sum(steps, na.rm = TRUE))
+median(steptot$steptot)
+qplot(steptot, data=steptot, geom="histogram", binwidth = 1000)
+```
 
 ## What is the average daily activity pattern?
+```{r}
+qplot(day, steptot, data = steptot)
 
-
+steptotwday <- activity2 %>%
+  mutate(day = wday(dt)) %>%
+  group_by(day) %>%
+  summarize (steptot = sum(steps, na.rm = TRUE))
+  
+qplot(day, steptot, data = steptotwday)
+```
 
 ## Imputing missing values
-
-
+```{r}
+activity2 %>%
+  group_by(ichar4) %>%
+  mutate(imean = mean(steps, na.rm = TRUE)) %>%
+  filter(ichar4 == "1200")
+```
 
 ## Are there differences in activity patterns between weekdays and weekends?
+```{r}
+activity2 %>%
+  mutate(daytype = ifelse(wday(dt) == 6 | wday(dt) == 7, "weekend", "weekday")) %>%
+  ## mutate(daytype = daytype(dt)) %>%
+  group_by(daytype) %>%
+  summarize(mean(steps, na.rm = TRUE))
+```  
+qplot(data = activity3, steps)
+
+
+
+
+
+
