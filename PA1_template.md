@@ -59,7 +59,7 @@ activity
 ## ..   ...        ...      ...
 ```
 
-I preprocess the data by creating a new column called ichar4 which is a string version of the time interval padded with zeros.  I then paste this string to the date string to create a POSIXct date-time called dt.  This makes use of the dplyr library and the lubridate library.
+I preprocess the data by creating a new column called ichar4 which is a string version of the time interval padded with zeros.  I then paste this string to the date string to create a POSIXct date-time called dt.  I also made a couple additional columns to experiement with for the time intervals.  One is called dhour and it is the decimal hour (hour+minutes/60) and one called fhour which expresses the time interval as a factor.  These are to enable better plotting.
 
 
 
@@ -69,33 +69,32 @@ activity2 <- activity %>%
   mutate(ihour = str_sub(ichar4, 1, 2)) %>%
   mutate(imin = str_sub(ichar4, 3, 4)) %>%
   mutate(dt = ymd_hm(paste(date, " ", ihour, ":", imin, sep = ""))) %>%
-  select(steps, dt, ichar4)
+  mutate(dhour = as.integer(imin)/60 + as.integer(ihour)) %>%
+  mutate(fhour = factor(ichar4)) %>%
+  select(steps, dt, ichar4, dhour, fhour)
 activity2
 ```
 
 ```
-## Source: local data frame [17,568 x 3]
+## Source: local data frame [17,568 x 5]
 ## 
-##    steps                  dt ichar4
-## 1     NA 2012-10-01 00:00:00   0000
-## 2     NA 2012-10-01 00:05:00   0005
-## 3     NA 2012-10-01 00:10:00   0010
-## 4     NA 2012-10-01 00:15:00   0015
-## 5     NA 2012-10-01 00:20:00   0020
-## 6     NA 2012-10-01 00:25:00   0025
-## 7     NA 2012-10-01 00:30:00   0030
-## 8     NA 2012-10-01 00:35:00   0035
-## 9     NA 2012-10-01 00:40:00   0040
-## 10    NA 2012-10-01 00:45:00   0045
-## ..   ...                 ...    ...
+##    steps                  dt ichar4      dhour fhour
+## 1     NA 2012-10-01 00:00:00   0000 0.00000000  0000
+## 2     NA 2012-10-01 00:05:00   0005 0.08333333  0005
+## 3     NA 2012-10-01 00:10:00   0010 0.16666667  0010
+## 4     NA 2012-10-01 00:15:00   0015 0.25000000  0015
+## 5     NA 2012-10-01 00:20:00   0020 0.33333333  0020
+## 6     NA 2012-10-01 00:25:00   0025 0.41666667  0025
+## 7     NA 2012-10-01 00:30:00   0030 0.50000000  0030
+## 8     NA 2012-10-01 00:35:00   0035 0.58333333  0035
+## 9     NA 2012-10-01 00:40:00   0040 0.66666667  0040
+## 10    NA 2012-10-01 00:45:00   0045 0.75000000  0045
+## ..   ...                 ...    ...        ...   ...
 ```
 
 
 ## What is mean total number of steps taken per day?
 To calculate the average steps per day I extract the day of the year from the POSIXct date using the lubridate function yday and then group by day.  This groups all the intervals for a given day together.  I then run a summarize using the sum function to get the total steps per day for each day.  This daily totals summary is stored in a new dataframe called steptot which is shown below.
-
-Finally I take the mean and the median of the total steps per day from the new dataframe, and I run a ggplot2 quickplot histogram to show the distribution of total steps per day.
-
 
 
 ```r
@@ -123,6 +122,9 @@ steptot
 ## .. ...     ...
 ```
 
+Finally I take the mean and the median of the total steps per day from the new dataframe, and I run a ggplot2 quickplot histogram to show the distribution of total steps per day.
+
+
 ```r
 mean(steptot$steptot)
 ```
@@ -143,48 +145,49 @@ median(steptot$steptot)
 qplot(steptot, data=steptot, geom="histogram", binwidth = 1000)
 ```
 
-![](PA1_template_files/figure-html/unnamed-chunk-4-1.png) 
+![](PA1_template_files/figure-html/unnamed-chunk-5-1.png) 
 
 ## What is the average daily activity pattern?
 For the average daily pattern I want to show the average number of steps for each time interval during the day.  This is averaged across all days - ie it is showing a typical pattern for a day.
 
-To do this I run a new summarization, but this time grouping by time interval (and ignoring the day).  For convenience I use the ichar4 string for this which I created as part of getting the POSIXct date at the beginning.  I take the mean of the number of steps for each time interval and store it in a new dataframe called stepint which is shown below.
-
-I then create a time series graph (which actually uses strings on the x axis in sorted order) to show the pattern over the course of a typical day.
-
-Finally I determine the time interval with the maximum average number of steps, which occurs at 0835 in the morning.
+To do this I run a new summarization, but this time grouping by time interval (and ignoring the day).  I use the dhour variable for this which I created at the beginning.  I take the mean of the number of steps for each time interval and store it in a new dataframe called stepint which is shown below.
 
 
 
 ```r
 stepint <- activity2 %>%
-  group_by(ichar4) %>%
-  summarize (stepintmean = mean(steps, na.rm = TRUE))
+  group_by(dhour) %>%
+  summarize(stepintmean = mean(steps, na.rm = TRUE))
 stepint
 ```
 
 ```
 ## Source: local data frame [288 x 2]
 ## 
-##    ichar4 stepintmean
-## 1    0000   1.7169811
-## 2    0005   0.3396226
-## 3    0010   0.1320755
-## 4    0015   0.1509434
-## 5    0020   0.0754717
-## 6    0025   2.0943396
-## 7    0030   0.5283019
-## 8    0035   0.8679245
-## 9    0040   0.0000000
-## 10   0045   1.4716981
-## ..    ...         ...
+##         dhour stepintmean
+## 1  0.00000000   1.7169811
+## 2  0.08333333   0.3396226
+## 3  0.16666667   0.1320755
+## 4  0.25000000   0.1509434
+## 5  0.33333333   0.0754717
+## 6  0.41666667   2.0943396
+## 7  0.50000000   0.5283019
+## 8  0.58333333   0.8679245
+## 9  0.66666667   0.0000000
+## 10 0.75000000   1.4716981
+## ..        ...         ...
 ```
+I then create a time series graph of steps vs decimal hour to show the pattern over the course of a typical day.
+
 
 ```r
-qplot(ichar4, stepintmean, data = stepint)
+qplot(dhour, stepintmean, data = stepint, geom="line")
 ```
 
-![](PA1_template_files/figure-html/unnamed-chunk-5-1.png) 
+![](PA1_template_files/figure-html/unnamed-chunk-7-1.png) 
+
+Finally I determine the time interval with the maximum average number of steps, which occurs at 0835 in the morning (hour 8.58).
+
 
 ```r
 stepint[stepint$stepintmean == max(stepint$stepintmean),]
@@ -193,8 +196,8 @@ stepint[stepint$stepintmean == max(stepint$stepintmean),]
 ```
 ## Source: local data frame [1 x 2]
 ## 
-##   ichar4 stepintmean
-## 1   0835    206.1698
+##      dhour stepintmean
+## 1 8.583333    206.1698
 ```
 
 ## Imputing missing values
@@ -221,21 +224,21 @@ activity3[285:295,] # selecting a point that shows both NA and values for steps
 ```
 
 ```
-## Source: local data frame [11 x 5]
+## Source: local data frame [11 x 7]
 ## Groups: ichar4
 ## 
-##    steps                  dt ichar4   intmean  stepsnew
-## 1     NA 2012-10-01 23:40:00   2340 3.3018868 3.3018868
-## 2     NA 2012-10-01 23:45:00   2345 0.6415094 0.6415094
-## 3     NA 2012-10-01 23:50:00   2350 0.2264151 0.2264151
-## 4     NA 2012-10-01 23:55:00   2355 1.0754717 1.0754717
-## 5      0 2012-10-02 00:00:00   0000 1.7169811 0.0000000
-## 6      0 2012-10-02 00:05:00   0005 0.3396226 0.0000000
-## 7      0 2012-10-02 00:10:00   0010 0.1320755 0.0000000
-## 8      0 2012-10-02 00:15:00   0015 0.1509434 0.0000000
-## 9      0 2012-10-02 00:20:00   0020 0.0754717 0.0000000
-## 10     0 2012-10-02 00:25:00   0025 2.0943396 0.0000000
-## 11     0 2012-10-02 00:30:00   0030 0.5283019 0.0000000
+##    steps                  dt ichar4       dhour fhour   intmean  stepsnew
+## 1     NA 2012-10-01 23:40:00   2340 23.66666667  2340 3.3018868 3.3018868
+## 2     NA 2012-10-01 23:45:00   2345 23.75000000  2345 0.6415094 0.6415094
+## 3     NA 2012-10-01 23:50:00   2350 23.83333333  2350 0.2264151 0.2264151
+## 4     NA 2012-10-01 23:55:00   2355 23.91666667  2355 1.0754717 1.0754717
+## 5      0 2012-10-02 00:00:00   0000  0.00000000  0000 1.7169811 0.0000000
+## 6      0 2012-10-02 00:05:00   0005  0.08333333  0005 0.3396226 0.0000000
+## 7      0 2012-10-02 00:10:00   0010  0.16666667  0010 0.1320755 0.0000000
+## 8      0 2012-10-02 00:15:00   0015  0.25000000  0015 0.1509434 0.0000000
+## 9      0 2012-10-02 00:20:00   0020  0.33333333  0020 0.0754717 0.0000000
+## 10     0 2012-10-02 00:25:00   0025  0.41666667  0025 2.0943396 0.0000000
+## 11     0 2012-10-02 00:30:00   0030  0.50000000  0030 0.5283019 0.0000000
 ```
 
 I then run the same analysis for mean and median daily step totals and the histogram of step totals using stepsnew instead of the actual steps to see how they compare.
@@ -290,7 +293,7 @@ median(steptot2$newsteptot)
 qplot(newsteptot, data=steptot2, geom="histogram", binwidth = 1000)
 ```
 
-![](PA1_template_files/figure-html/unnamed-chunk-9-1.png) 
+![](PA1_template_files/figure-html/unnamed-chunk-12-1.png) 
 
 Finally we look again at the daily activity pattern but including imputed values.  It looks very similar.
 
@@ -299,7 +302,7 @@ It seems that using imputed values has very little effect on the calculated aver
 
 ```r
 stepint2 <- activity3 %>%
-  group_by(ichar4) %>%
+  group_by(dhour) %>%
   summarize (stepintmean = mean(stepsnew, na.rm = TRUE))
 stepint2
 ```
@@ -307,25 +310,25 @@ stepint2
 ```
 ## Source: local data frame [288 x 2]
 ## 
-##    ichar4 stepintmean
-## 1    0000   1.7169811
-## 2    0005   0.3396226
-## 3    0010   0.1320755
-## 4    0015   0.1509434
-## 5    0020   0.0754717
-## 6    0025   2.0943396
-## 7    0030   0.5283019
-## 8    0035   0.8679245
-## 9    0040   0.0000000
-## 10   0045   1.4716981
-## ..    ...         ...
+##         dhour stepintmean
+## 1  0.00000000   1.7169811
+## 2  0.08333333   0.3396226
+## 3  0.16666667   0.1320755
+## 4  0.25000000   0.1509434
+## 5  0.33333333   0.0754717
+## 6  0.41666667   2.0943396
+## 7  0.50000000   0.5283019
+## 8  0.58333333   0.8679245
+## 9  0.66666667   0.0000000
+## 10 0.75000000   1.4716981
+## ..        ...         ...
 ```
 
 ```r
-qplot(ichar4, stepintmean, data = stepint2)
+qplot(dhour, stepintmean, data = stepint2, geom="line")
 ```
 
-![](PA1_template_files/figure-html/unnamed-chunk-10-1.png) 
+![](PA1_template_files/figure-html/unnamed-chunk-13-1.png) 
 
 ```r
 stepint2[stepint2$stepintmean == max(stepint2$stepintmean),]
@@ -334,8 +337,8 @@ stepint2[stepint2$stepintmean == max(stepint2$stepintmean),]
 ```
 ## Source: local data frame [1 x 2]
 ## 
-##   ichar4 stepintmean
-## 1   0835    206.1698
+##      dhour stepintmean
+## 1 8.583333    206.1698
 ```
 
 ## Are there differences in activity patterns between weekdays and weekends?
@@ -351,19 +354,18 @@ activity4 <- activity3 %>%
   mutate(daytype = factor(1 * (wday(dt) == 6 | wday(dt) == 7),labels = c("weekday","weekend")))
 ```
 
-Finally we look at a panel plot showing side by side the breakdown of activity levels by time interval on the weekdays compared to the weekends.
+Finally we look at a panel plot showing the breakdown of activity levels by time interval on the weekdays compared to the weekends.
 
 
 ```r
-stepint3 <- activity3 %>%
-  mutate(daytype = ifelse(wday(dt) == 6 | wday(dt) == 7, "weekend", "weekday")) %>%
-  group_by(daytype,ichar4) %>%
+stepint3 <- activity4 %>%
+  group_by(daytype,dhour) %>%
   summarize (stepintmean = mean(steps, na.rm = TRUE))
 
-qplot(ichar4, stepintmean, data = stepint3, facets = daytype~.)
+qplot(dhour, stepintmean, data = stepint3, geom="line", facets = daytype~.)
 ```
 
-![](PA1_template_files/figure-html/unnamed-chunk-12-1.png) 
+![](PA1_template_files/figure-html/unnamed-chunk-15-1.png) 
 
 
 
